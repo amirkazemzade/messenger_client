@@ -36,6 +36,32 @@ public class GMSenderSocket {
         } else throw new MyServerException("Something went wrong");
     }
 
+    public void leaveGroup(String groupId, String sid) throws MyServerException{
+        try {
+            Socket serverSocket = new Socket(InetAddress.getByAddress(serverAddress), serverPort);
+            in = new DataInputStream(new BufferedInputStream(serverSocket.getInputStream()));
+            out = new DataOutputStream(new BufferedOutputStream(serverSocket.getOutputStream()));
+            DataInputStream in = new DataInputStream(new BufferedInputStream(serverSocket.getInputStream()));
+            DataOutputStream out = new DataOutputStream(new BufferedOutputStream(serverSocket.getOutputStream()));
+            out.writeUTF(String.format("End -Option <SID:%s> -Option <gname:%s> ", sid, groupId));
+            out.flush();
+            String message = in.readUTF();
+            handleLeaveGroup(message);
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new MyServerException("Something went wrong");
+        }
+    }
+
+    private void handleLeaveGroup(String message) throws MyServerException {
+        String[] messageArray = messageToArray(message);
+        if (messageArray[0].matches("LeftGroup")) return;
+        if (messageArray[0].matches("ERROR")) {
+            String reason = extractReason(messageArray);
+            throw new MyServerException(reason);
+        } else throw new MyServerException("Something went wrong");
+    }
+
     public void sendGM(String groupId, String sid, String message) throws MyServerException {
         try {
             Socket serverSocket = getServerSocket();

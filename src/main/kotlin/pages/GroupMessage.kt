@@ -43,8 +43,13 @@ fun GroupMessage(navigation: (HomeWrapperRoutes) -> Unit, listOfMessages: List<G
 
     fun leaveGroup(){
         coroutineScope.launch(Dispatchers.IO) {
-
-            navigation(HomeWrapperRoutes.Home)
+            try {
+                val senderSocket = GMSenderSocket()
+                senderSocket.leaveGroup(groupId, sid)
+                navigation(HomeWrapperRoutes.Home)
+            } catch (e: MyServerException){
+                e.printStackTrace()
+            }
         }
     }
 
