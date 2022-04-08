@@ -26,6 +26,7 @@ fun HomeWrapper(sid: String, username: String, onLogOut: () -> Unit) {
     when (currentRoute) {
         is HomeWrapperRoutes.Home -> Home(navigateTo, sid, username, onLogOut)
         is HomeWrapperRoutes.NewPrivateMessage -> NewPrivateMessage(navigateTo, sid)
+        is HomeWrapperRoutes.NewGroup -> NewGroup(navigateTo, sid)
         is HomeWrapperRoutes.PrivateMessage -> {
             val route = currentRoute as HomeWrapperRoutes.PrivateMessage
             PrivateMessage(navigateTo, route.messages, sid, route.destinationId)
@@ -34,6 +35,10 @@ fun HomeWrapper(sid: String, username: String, onLogOut: () -> Unit) {
             val route = currentRoute as HomeWrapperRoutes.GroupMessage
             GroupMessage(navigateTo, route.messages, sid, username, route.groupId)
         }
+        is HomeWrapperRoutes.GroupUsers -> {
+            val route = currentRoute as HomeWrapperRoutes.GroupUsers
+            GroupUsers(navigateTo, sid, route.groupId)
+        }
     }
 }
 
@@ -41,10 +46,14 @@ fun HomeWrapper(sid: String, username: String, onLogOut: () -> Unit) {
 sealed class HomeWrapperRoutes : Parcelable {
     object Home : HomeWrapperRoutes()
     object NewPrivateMessage : HomeWrapperRoutes()
+    object NewGroup : HomeWrapperRoutes()
     data class PrivateMessage(
         val messages: List<PMResponse> = listOf(), val destinationId: String
     ) : HomeWrapperRoutes()
+
     data class GroupMessage(
         val messages: List<GMResponse> = listOf(), val groupId: String
     ) : HomeWrapperRoutes()
+
+    data class GroupUsers(val groupId: String) : HomeWrapperRoutes()
 }

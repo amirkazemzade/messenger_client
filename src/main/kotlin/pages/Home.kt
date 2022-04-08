@@ -219,7 +219,7 @@ fun Home(navigation: (HomeWrapperRoutes) -> Unit, sid: String, username: String,
                             }
                             Spacer(modifier = Modifier.width(8.dp))
                             Button(
-                                onClick = {},
+                                onClick = { navigation(HomeWrapperRoutes.NewGroup) },
                                 colors = ButtonDefaults.outlinedButtonColors()
                             ) {
                                 Text("New Group")
@@ -243,9 +243,8 @@ fun Home(navigation: (HomeWrapperRoutes) -> Unit, sid: String, username: String,
                     list = list.sortedByDescending { it.value.first().sendTime }
                     items(list) { messageEntry ->
                         Button(
-                            modifier = Modifier,
                             onClick = {
-                                if (messageEntry.value.first() is PMResponse){
+                                if (messageEntry.value.first() is PMResponse) {
                                     val messagesFromThisUser = messageEntry.value.filterIsInstance<PMResponse>()
                                     navigation(
                                         HomeWrapperRoutes.PrivateMessage(

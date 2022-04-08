@@ -65,6 +65,37 @@ public class GMSenderSocket {
         } else throw new MyServerException("Something went wrong");
     }
 
+    public void createGroup(String groupId, String sid) throws MyServerException {
+        try {
+            Socket serverSocket = getServerSocket();
+            in = new DataInputStream(new BufferedInputStream(serverSocket.getInputStream()));
+            out = new DataOutputStream(new BufferedOutputStream(serverSocket.getOutputStream()));
+            DataInputStream in = new DataInputStream(new BufferedInputStream(serverSocket.getInputStream()));
+            DataOutputStream out = new DataOutputStream(new BufferedOutputStream(serverSocket.getOutputStream()));
+            out.writeUTF(String.format(
+                            "CreateGroup -Option <gname:%s> -Option -Option <SID:%s>",
+                            groupId, sid
+                    )
+            );
+            out.flush();
+            String response = in.readUTF();
+            handleCreateGroupResponse(response);
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new MyServerException("Something went wrong");
+        }
+
+    }
+
+    private void handleCreateGroupResponse(String message) throws MyServerException {
+        String[] messageArray = messageToArray(message);
+        if (messageArray[0].matches("GroupCreated")) return;
+        if (messageArray[0].matches("ERROR")) {
+            String reason = extractReason(messageArray);
+            throw new MyServerException(reason);
+        } else throw new MyServerException("Something went wrong");
+    }
+
     private Socket getServerSocket() throws IOException {
         return new Socket(InetAddress.getByAddress(serverAddress), serverPort);
     }

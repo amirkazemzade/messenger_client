@@ -41,6 +41,13 @@ fun GroupMessage(navigation: (HomeWrapperRoutes) -> Unit, listOfMessages: List<G
         mutableStateOf(false)
     }
 
+    fun leaveGroup(){
+        coroutineScope.launch(Dispatchers.IO) {
+
+            navigation(HomeWrapperRoutes.Home)
+        }
+    }
+
     fun getAllMessages(){
         coroutineScope.launch(Dispatchers.IO){
             try {
@@ -107,6 +114,21 @@ fun GroupMessage(navigation: (HomeWrapperRoutes) -> Unit, listOfMessages: List<G
                             onClick = { navigation(HomeWrapperRoutes.Home) }
                         ) {
                             Icon(Icons.Outlined.ArrowBack, contentDescription = "Back Button")
+                        }
+                    },
+                    actions = {
+                        Button(
+                            onClick = { navigation(HomeWrapperRoutes.GroupUsers(groupId)) },
+                            colors = ButtonDefaults.outlinedButtonColors()
+                        ) {
+                            Text("Users List")
+                        }
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Button(
+                            onClick = { leaveGroup() },
+                            colors = ButtonDefaults.outlinedButtonColors()
+                        ) {
+                            Text("Leave Group")
                         }
                     }
                 )
