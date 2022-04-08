@@ -1,8 +1,8 @@
 package pages
 
+import GMReceiverSocket
+import GMSenderSocket
 import MyServerException
-import PMReceiverSocket
-import PMSenderSocket
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -16,10 +16,10 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import models.PMResponse
+import models.GMResponse
 
 @Composable
-fun PrivateMessage(navigation: (HomeWrapperRoutes) -> Unit, listOfMessages: List<PMResponse>, sid:String, desUsername: String) {
+fun GroupMessage(navigation: (HomeWrapperRoutes) -> Unit, listOfMessages: List<GMResponse>, sid:String, user: String, groupId: String) {
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -28,9 +28,9 @@ fun PrivateMessage(navigation: (HomeWrapperRoutes) -> Unit, listOfMessages: List
     var typingMessage by remember {
         mutableStateOf("")
     }
-    
-    val pmSocket: PMReceiverSocket by remember {
-        mutableStateOf(PMReceiverSocket())
+
+    val gmSocket: GMReceiverSocket by remember {
+        mutableStateOf(GMReceiverSocket())
     }
 
     var messages by remember {
@@ -44,8 +44,8 @@ fun PrivateMessage(navigation: (HomeWrapperRoutes) -> Unit, listOfMessages: List
     fun getAllMessages(){
         coroutineScope.launch(Dispatchers.IO){
             try {
-                val allMessages = pmSocket.getAllMessagesFrom(sid, desUsername)
-                messages = allMessages.sortedByDescending { it.sendTime }.map { it as PMResponse }
+                val allMessages = gmSocket.getAllMessagesFrom(sid, groupId)
+                messages = allMessages.sortedByDescending { it.sendTime }.map { it as GMResponse }
                 isConnectionErrorEnabled = false
             } catch (e: MyServerException){
                 e.printStackTrace()
@@ -58,9 +58,9 @@ fun PrivateMessage(navigation: (HomeWrapperRoutes) -> Unit, listOfMessages: List
         coroutineScope.launch(Dispatchers.IO) {
             while (!isConnectionErrorEnabled) {
                 try {
-                    val message = pmSocket.receive(sid)
-                    if (message is PMResponse){
-                        if (message.senderId == desUsername || message.receiverId == desUsername){
+                    val message = gmSocket.receive(sid)
+                    if (message is GMResponse){
+                        if (groupId == message.groupId){
                             val newMessages = messages.toMutableList()
                             newMessages.add(message)
                             messages = newMessages.sortedByDescending { it.sendTime }
@@ -74,7 +74,7 @@ fun PrivateMessage(navigation: (HomeWrapperRoutes) -> Unit, listOfMessages: List
             }
         }
     }
-    
+
     LaunchedEffect(scaffoldState){
         delay(500)
         getAllMessages()
@@ -86,8 +86,8 @@ fun PrivateMessage(navigation: (HomeWrapperRoutes) -> Unit, listOfMessages: List
         if (typingMessage == "") return
         coroutineScope.launch(Dispatchers.IO){
             try {
-                val senderSocket = PMSenderSocket()
-                senderSocket.sendPM(desUsername, sid, typingMessage)
+                val senderSocket = GMSenderSocket()
+                senderSocket.sendGM(groupId, sid, typingMessage)
                 isConnectionErrorEnabled = false
                 typingMessage = ""
             } catch (e: MyServerException){
@@ -101,7 +101,7 @@ fun PrivateMessage(navigation: (HomeWrapperRoutes) -> Unit, listOfMessages: List
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text(desUsername) },
+                    title = { Text(groupId) },
                     navigationIcon = {
                         IconButton(
                             onClick = { navigation(HomeWrapperRoutes.Home) }
@@ -125,7 +125,7 @@ fun PrivateMessage(navigation: (HomeWrapperRoutes) -> Unit, listOfMessages: List
                 ) {
                     messages = messages.sortedByDescending { it.sendTime.time }
                     items(messages) { message ->
-                        if (message.senderId == desUsername) {
+                        if (message.senderId != user) {
                             ReceivedMessage(message)
                         } else {
                             SentMessage(message)

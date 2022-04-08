@@ -8,6 +8,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import dev.icerock.moko.parcelize.Parcelable
 import dev.icerock.moko.parcelize.Parcelize
+import models.GMResponse
 import models.PMResponse
 
 @Composable
@@ -29,6 +30,10 @@ fun HomeWrapper(sid: String, username: String, onLogOut: () -> Unit) {
             val route = currentRoute as HomeWrapperRoutes.PrivateMessage
             PrivateMessage(navigateTo, route.messages, sid, route.destinationId)
         }
+        is HomeWrapperRoutes.GroupMessage -> {
+            val route = currentRoute as HomeWrapperRoutes.GroupMessage
+            GroupMessage(navigateTo, route.messages, sid, username, route.groupId)
+        }
     }
 }
 
@@ -38,5 +43,8 @@ sealed class HomeWrapperRoutes : Parcelable {
     object NewPrivateMessage : HomeWrapperRoutes()
     data class PrivateMessage(
         val messages: List<PMResponse> = listOf(), val destinationId: String
+    ) : HomeWrapperRoutes()
+    data class GroupMessage(
+        val messages: List<GMResponse> = listOf(), val groupId: String
     ) : HomeWrapperRoutes()
 }

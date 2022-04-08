@@ -1,5 +1,6 @@
 package pages
 
+import GMReceiverSocket
 import MyServerException
 import PMReceiverSocket
 import androidx.compose.desktop.ui.tooling.preview.Preview
@@ -19,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import models.GMResponse
 import models.Message
 import models.PMResponse
 import java.time.format.DateTimeFormatter
@@ -35,6 +37,10 @@ fun Home(navigation: (HomeWrapperRoutes) -> Unit, sid: String, username: String,
         mutableStateOf(PMReceiverSocket())
     }
 
+    val gmSocket: GMReceiverSocket by remember {
+        mutableStateOf(GMReceiverSocket())
+    }
+
     var isConnectionErrorEnabled by remember {
         mutableStateOf(false)
     }
@@ -43,43 +49,69 @@ fun Home(navigation: (HomeWrapperRoutes) -> Unit, sid: String, username: String,
         mutableStateOf(hashMapOf())
     }
 
-    fun getAllMessages() {
+
+    fun updateMessagesState(message: PMResponse): HashMap<String, MutableList<Message>> {
+        val map = HashMap(messages)
+        if (message.senderId == username && message.receiverId == username) {
+            if (!map.containsKey(message.senderId)) {
+                map[message.senderId] = mutableListOf(message)
+            } else {
+                map[message.senderId]?.apply {
+                    add(message)
+                    sortByDescending { it.sendTime }
+                }
+            }
+        } else if (message.senderId == username) {
+            if (!map.containsKey(message.receiverId)) {
+                map[message.receiverId] = mutableListOf(message)
+            } else {
+                map[message.receiverId]?.apply {
+                    add(message)
+                    sortByDescending { it.sendTime }
+                }
+            }
+        } else if (message.receiverId == username) {
+            if (!map.containsKey(message.senderId)) {
+                map[message.senderId] = mutableListOf(message)
+            } else {
+                map[message.senderId]?.apply {
+                    add(message)
+                    sortByDescending { it.sendTime }
+                }
+            }
+        }
+        return map
+    }
+
+    fun getAllPMMessages() {
         coroutineScope.launch(Dispatchers.IO) {
             try {
                 val allMessages = pmSocket.getAllMessages(sid)
-                val map = hashMapOf<String, MutableList<Message>>()
                 allMessages.forEach { message ->
-                    if (message is PMResponse) {
-                        if (message.senderId == username && message.receiverId == username) {
-                            if (!map.containsKey(message.senderId)) {
-                                map[message.senderId] = mutableListOf(message)
-                            } else {
-                                map[message.senderId]?.apply {
-                                    add(message)
-                                    sortByDescending { it.sendTime }
-                                }
-                            }
-                        } else if (message.senderId == username) {
-                            if (!map.containsKey(message.receiverId)) {
-                                map[message.receiverId] = mutableListOf(message)
-                            } else {
-                                map[message.receiverId]?.apply {
-                                    add(message)
-                                    sortByDescending { it.sendTime }
-                                }
-                            }
-                        } else if (message.receiverId == username) {
-                            if (!map.containsKey(message.senderId)) {
-                                map[message.senderId] = mutableListOf(message)
-                            } else {
-                                map[message.senderId]?.apply {
-                                    add(message)
-                                    sortByDescending { it.sendTime }
-                                }
-                            }
-                        }
+                    messages = updateMessagesState(message)
+                }
+                isConnectionErrorEnabled = false
+            } catch (e: MyServerException) {
+                e.printStackTrace()
+                isConnectionErrorEnabled = true
+            }
+        }
+    }
+
+    fun getAllGMMessages() {
+        coroutineScope.launch(Dispatchers.IO) {
+            try {
+                val allMessages = gmSocket.getAllMessages(sid)
+                val map = HashMap(messages)
+                allMessages.forEach { message ->
+                    if (!map.containsKey(message.senderId)) {
+                        map[message.groupId] = mutableListOf(message)
                     } else {
-                        // todo implement
+                        map[message.groupId] = mutableListOf()
+                        map[message.groupId]?.apply {
+                            add(message)
+                            sortByDescending { it.sendTime }
+                        }
                     }
                 }
                 messages = map
@@ -91,21 +123,36 @@ fun Home(navigation: (HomeWrapperRoutes) -> Unit, sid: String, username: String,
         }
     }
 
-    fun waitForMessages() {
+    fun waitForPMMessages() {
         coroutineScope.launch(Dispatchers.IO) {
             while (!isConnectionErrorEnabled) {
                 try {
                     val message = pmSocket.receive(sid)
+                    messages = updateMessagesState(message)
+                    isConnectionErrorEnabled = false
+                } catch (e: MyServerException) {
+                    e.printStackTrace()
+                    isConnectionErrorEnabled = true
+                }
+            }
+        }
+    }
+
+    fun waitForGMMessages() {
+        coroutineScope.launch(Dispatchers.IO) {
+            while (!isConnectionErrorEnabled) {
+                try {
+                    val message = gmSocket.receive(sid)
                     val map = HashMap(messages)
-                    if (!messages.containsKey(message.messageSourceId)) {
-                        map[message.messageSourceId] = mutableListOf(message)
+                    if (!messages.containsKey(message.groupId)) {
+                        map[message.groupId] = mutableListOf(message)
                     } else {
-                        val list = map[message.messageSourceId]
+                        val list = map[message.groupId]
                         list?.apply {
                             add(message)
                             sortByDescending { it.sendTime }
                         }
-                        map[message.messageSourceId] = list
+                        map[message.groupId] = list
                         messages = HashMap()
                     }
                     messages = map
@@ -119,9 +166,11 @@ fun Home(navigation: (HomeWrapperRoutes) -> Unit, sid: String, username: String,
     }
 
     suspend fun connect() {
-        getAllMessages()
+        getAllPMMessages()
+        getAllGMMessages()
         delay(500)
-        waitForMessages()
+        waitForPMMessages()
+        waitForGMMessages()
         delay(500)
     }
 
@@ -196,15 +245,23 @@ fun Home(navigation: (HomeWrapperRoutes) -> Unit, sid: String, username: String,
                         Button(
                             modifier = Modifier,
                             onClick = {
-                                val messagesFromThisUser = messageEntry.value.map {
-                                    it as PMResponse
-                                }
-                                navigation(
-                                    HomeWrapperRoutes.PrivateMessage(
-                                        messagesFromThisUser.toList(),
-                                        messageEntry.key
+                                if (messageEntry.value.first() is PMResponse){
+                                    val messagesFromThisUser = messageEntry.value.filterIsInstance<PMResponse>()
+                                    navigation(
+                                        HomeWrapperRoutes.PrivateMessage(
+                                            messagesFromThisUser.toList(),
+                                            messageEntry.key
+                                        )
                                     )
-                                )
+                                } else {
+                                    val messagesFromThisGroup = messageEntry.value.filterIsInstance<GMResponse>()
+                                    navigation(
+                                        HomeWrapperRoutes.GroupMessage(
+                                            messagesFromThisGroup.toList(),
+                                            messageEntry.key
+                                        )
+                                    )
+                                }
                             },
                             colors = ButtonDefaults.outlinedButtonColors()
                         ) {

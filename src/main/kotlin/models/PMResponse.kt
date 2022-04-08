@@ -7,5 +7,5 @@ data class PMResponse(
     val senderId: String,
     val receiverId: String,
     val messageLength: Int,
-    val message: String
-): Message(sendTime, senderId)
+    override val message: String
+): Message(sendTime, senderId, message)

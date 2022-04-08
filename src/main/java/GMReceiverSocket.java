@@ -1,4 +1,4 @@
-import models.PMResponse;
+import models.GMResponse;
 
 import java.io.*;
 import java.net.InetAddress;
@@ -6,70 +6,20 @@ import java.net.Socket;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 
-public class PMReceiverSocket {
+public class GMReceiverSocket {
 
     byte[] serverAddress = {127, 0, 0, 1};
-    int serverPort = 41000;
+    int serverPort = 50000;
 
     DataInputStream in;
     DataOutputStream out;
 
-    public ArrayList<PMResponse> getAllMessages(String sid) throws MyServerException {
+    public GMResponse receive(String sid) throws MyServerException {
         try {
             Socket serverSocket = new Socket(InetAddress.getByAddress(serverAddress), serverPort);
             in = new DataInputStream(new BufferedInputStream(serverSocket.getInputStream()));
             out = new DataOutputStream(new BufferedOutputStream(serverSocket.getOutputStream()));
-            out.writeUTF(String.format("PM GetAll -Option <SID:%s>", sid));
-            out.flush();
-            String message = in.readUTF();
-            return handleAllMessagesResponse(message);
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw new MyServerException("Something went wrong");
-        }
-    }
-
-    public ArrayList<PMResponse> getAllMessagesFrom(String sid, String desId) throws MyServerException {
-        try {
-            Socket serverSocket = new Socket(InetAddress.getByAddress(serverAddress), serverPort);
-            in = new DataInputStream(new BufferedInputStream(serverSocket.getInputStream()));
-            out = new DataOutputStream(new BufferedOutputStream(serverSocket.getOutputStream()));
-            out.writeUTF(String.format("PM GetAllFrom -Option <SID:%s> -Option <from:%s>", sid, desId));
-            out.flush();
-            String message = in.readUTF();
-            return handleAllMessagesResponse(message);
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw new MyServerException("Something went wrong");
-        }
-    }
-
-    private ArrayList<PMResponse> handleAllMessagesResponse(String message) throws MyServerException {
-        String[] messageLines = message.split("\r\n");
-        String[] messageArray = messageLines[0].split(" -Option ");
-        if (messageArray[0].matches("PM All")) {
-            return extractAllMessages(messageLines);
-        } else if (messageArray[0].matches("ERROR")) {
-            String reason = extractReason(messageArray);
-            throw new MyServerException(reason);
-        } else throw new MyServerException("Something went wrong");
-    }
-
-    private ArrayList<PMResponse> extractAllMessages(String[] messageLines) throws MyServerException {
-        ArrayList<PMResponse> messages = new ArrayList<>();
-        for (int i = 1; i < messageLines.length; i++) {
-            String[] messageArray = messageLines[i].split(" -Option ");
-            messages.add(extractPMResponse(messageArray));
-        }
-        return messages;
-    }
-
-    public PMResponse receive(String sid) throws MyServerException {
-        try {
-            Socket serverSocket = new Socket(InetAddress.getByAddress(serverAddress), serverPort);
-            in = new DataInputStream(new BufferedInputStream(serverSocket.getInputStream()));
-            out = new DataOutputStream(new BufferedOutputStream(serverSocket.getOutputStream()));
-            out.writeUTF(String.format("PM Connect -Option <SID:%s>", sid));
+            out.writeUTF(String.format("GM Connect -Option <SID:%s>", sid));
             out.flush();
             String message = in.readUTF();
             return handleConnectResponse(message);
@@ -79,13 +29,63 @@ public class PMReceiverSocket {
         }
     }
 
-    private PMResponse handleConnectResponse(String message) throws MyServerException {
+    private GMResponse handleConnectResponse(String message) throws MyServerException {
         String[] messageArray = messageToArray(message);
-        if (messageArray[0].matches("PM")) return extractPMResponse(messageArray);
+        if (messageArray[0].matches("GM")) return extractGMResponse(messageArray);
         else if (messageArray[0].matches("ERROR")) {
             String reason = extractReason(messageArray);
             throw new MyServerException(reason);
         } else throw new MyServerException("Something went wrong");
+    }
+
+    public ArrayList<GMResponse> getAllMessages(String sid) throws MyServerException {
+        try {
+            Socket serverSocket = new Socket(InetAddress.getByAddress(serverAddress), serverPort);
+            in = new DataInputStream(new BufferedInputStream(serverSocket.getInputStream()));
+            out = new DataOutputStream(new BufferedOutputStream(serverSocket.getOutputStream()));
+            out.writeUTF(String.format("GM GetAll -Option <SID:%s>", sid));
+            out.flush();
+            String message = in.readUTF();
+            return handleAllMessagesResponse(message);
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new MyServerException("Something went wrong");
+        }
+    }
+
+    private ArrayList<GMResponse> handleAllMessagesResponse(String message) throws MyServerException {
+        String[] messageLines = message.split("\r\n");
+        String[] messageArray = messageLines[0].split(" -Option ");
+        if (messageArray[0].matches("GM All")) {
+            return extractAllMessages(messageLines);
+        } else if (messageArray[0].matches("ERROR")) {
+            String reason = extractReason(messageArray);
+            throw new MyServerException(reason);
+        } else throw new MyServerException("Something went wrong");
+    }
+
+    public ArrayList<GMResponse> getAllMessagesFrom(String sid, String desId) throws MyServerException {
+        try {
+            Socket serverSocket = new Socket(InetAddress.getByAddress(serverAddress), serverPort);
+            in = new DataInputStream(new BufferedInputStream(serverSocket.getInputStream()));
+            out = new DataOutputStream(new BufferedOutputStream(serverSocket.getOutputStream()));
+            out.writeUTF(String.format("GM GetAllFrom -Option <SID:%s> -Option <gname:%s>", sid, desId));
+            out.flush();
+            String message = in.readUTF();
+            return handleAllMessagesResponse(message);
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new MyServerException("Something went wrong");
+        }
+    }
+
+    private ArrayList<GMResponse> extractAllMessages(String[] messageLines) throws MyServerException {
+        ArrayList<GMResponse> messages = new ArrayList<>();
+        for (int i = 1; i < messageLines.length; i++) {
+            String[] messageArray = messageLines[i].split(" -Option ");
+            messages.add(extractGMResponse(messageArray));
+        }
+        return messages;
     }
 
     private String extractReason(String[] messageArray) {
@@ -101,21 +101,21 @@ public class PMReceiverSocket {
         return message.split(" -Option ");
     }
 
-    private PMResponse extractPMResponse(String[] messageArray) throws MyServerException {
+    private GMResponse extractGMResponse(String[] messageArray) throws MyServerException {
         String senderId = null;
-        String receiverId = null;
+        String groupId = null;
         String lengthString = null;
         String message = null;
         String sendTime = null;
         for (int i = 1; i < messageArray.length; i++) {
             String[] option = messageArray[i].split("[<>:]");
             if (option[1].matches("from")) senderId = option[2];
-            else if (option[1].matches("to")) receiverId = option[2];
+            else if (option[1].matches("to")) groupId = option[2];
             else if (option[1].matches("message_len")) lengthString = option[2];
             else if (option[1].matches("message_body")) message = option[2];
             else if (option[1].matches("send_time")) sendTime = option[2];
         }
-        if (sendTime == null || lengthString == null || senderId == null || receiverId == null || message == null) throw new MyServerException("invalid response");
+        if (sendTime == null || lengthString == null || senderId == null || groupId == null || message == null) throw new MyServerException("invalid response");
 
         int length;
         try {
@@ -125,6 +125,11 @@ public class PMReceiverSocket {
             throw new MyServerException("invalid response");
         }
 
-        return new PMResponse(new Timestamp(Long.parseLong(sendTime)), senderId, receiverId, length, message);
+        return new GMResponse(groupId, senderId, length, message, new Timestamp(Long.parseLong(sendTime)));
     }
+
+//    public ArrayList<String> getGroupUsers(){
+//
+//    }
 }
+

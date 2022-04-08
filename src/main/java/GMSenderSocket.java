@@ -2,41 +2,41 @@ import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
 
-public class PMSenderSocket {
+public class GMSenderSocket {
 
     byte[] serverAddress = {127, 0, 0, 1};
-    int serverPort = 41000;
+    int serverPort = 50000;
 
     DataInputStream in;
     DataOutputStream out;
 
-    public void connectToAnotherUser(String destinationUsername, String sid) throws MyServerException {
+    public void joinGroup(String groupId, String sid) throws MyServerException {
         try {
             Socket serverSocket = new Socket(InetAddress.getByAddress(serverAddress), serverPort);
             in = new DataInputStream(new BufferedInputStream(serverSocket.getInputStream()));
             out = new DataOutputStream(new BufferedOutputStream(serverSocket.getOutputStream()));
             DataInputStream in = new DataInputStream(new BufferedInputStream(serverSocket.getInputStream()));
             DataOutputStream out = new DataOutputStream(new BufferedOutputStream(serverSocket.getOutputStream()));
-            out.writeUTF(String.format("PM ConnectTo -Option <to:%s> -Option <SID:%s>", destinationUsername, sid));
+            out.writeUTF(String.format("Group -Option <SID:%s> -Option <gname:%s> ", sid, groupId));
             out.flush();
             String message = in.readUTF();
-            handleConnectToAnotherUserResponse(message);
+            handleJoinGroup(message);
         } catch (IOException e) {
             e.printStackTrace();
             throw new MyServerException("Something went wrong");
         }
     }
 
-    private void handleConnectToAnotherUserResponse(String message) throws MyServerException {
+    private void handleJoinGroup(String message) throws MyServerException {
         String[] messageArray = messageToArray(message);
-        if (messageArray[0].matches("SENT PM")) return;
+        if (messageArray[0].matches("JoinedGroup")) return;
         if (messageArray[0].matches("ERROR")) {
             String reason = extractReason(messageArray);
             throw new MyServerException(reason);
         } else throw new MyServerException("Something went wrong");
     }
 
-    public void sendPM(String destinationUsername, String sid, String message) throws MyServerException {
+    public void sendGM(String groupId, String sid, String message) throws MyServerException {
         try {
             Socket serverSocket = getServerSocket();
             in = new DataInputStream(new BufferedInputStream(serverSocket.getInputStream()));
@@ -44,16 +44,25 @@ public class PMSenderSocket {
             DataInputStream in = new DataInputStream(new BufferedInputStream(serverSocket.getInputStream()));
             DataOutputStream out = new DataOutputStream(new BufferedOutputStream(serverSocket.getOutputStream()));
             out.writeUTF(String.format(
-                    "PM -Option <message_len:%d> -Option <to:%s> -Option <message_body:%s> -Option <SID:%s>",
-                    message.getBytes().length, destinationUsername, message, sid)
+                    "GM -Option <to:%s> -Option <message_len:%d> -Option <message_body:%s> -Option <SID:%s>",
+                    groupId, message.getBytes().length, message, sid)
             );
             out.flush();
             String response = in.readUTF();
-            handleConnectToAnotherUserResponse(response);
+            handleSendGMResponse(response);
         } catch (IOException e) {
             e.printStackTrace();
             throw new MyServerException("Something went wrong");
         }
+    }
+
+    private void handleSendGMResponse(String message) throws MyServerException {
+        String[] messageArray = messageToArray(message);
+        if (messageArray[0].matches("SENT PM")) return;
+        if (messageArray[0].matches("ERROR")) {
+            String reason = extractReason(messageArray);
+            throw new MyServerException(reason);
+        } else throw new MyServerException("Something went wrong");
     }
 
     private Socket getServerSocket() throws IOException {
