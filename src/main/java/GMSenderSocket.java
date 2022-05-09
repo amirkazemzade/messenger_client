@@ -84,7 +84,7 @@ public class GMSenderSocket {
 
     private void handleSendGMResponse(String message) throws MyServerException {
         String[] messageArray = messageToArray(message);
-        if (messageArray[0].matches("SENT PM")) return;
+        if (messageArray[0].matches("SENT GM")) return;
         if (messageArray[0].matches("ERROR")) {
             String reason = extractReason(messageArray);
             throw new MyServerException(reason);
