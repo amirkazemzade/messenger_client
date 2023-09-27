@@ -1,19 +1,82 @@
-# messenger_client
+# Messenger Client
 
-### server repository: https://github.com/amirkazemzade/messenger_server
+## Introduction
 
-## Screenshots:
+This is a simple messaging app which uses sockets for
+communication. It was my Network lecture assignment in the university.
 
-![image](https://github.com/amirkazemzade/messenger_client/assets/76568952/031644c9-99e4-437b-b8f4-7d19082238f2)
+## Server Repository
 
-![image](https://github.com/amirkazemzade/messenger_client/assets/76568952/c49ca979-2ee8-4819-975c-ee3b67c87a76)
+### https://github.com/amirkazemzade/messenger_server
 
-![image](https://github.com/amirkazemzade/messenger_client/assets/76568952/8f4d28ee-4760-4d99-a984-2f1fbe885b74)
+## Functionality
 
-![image](https://github.com/amirkazemzade/messenger_client/assets/76568952/b78f6ea5-e8dc-47a4-8bc6-8a5d5f5e2221)
+### How it works?
 
-![image](https://github.com/amirkazemzade/messenger_client/assets/76568952/457b5268-b97b-4a66-87d7-e480f2e22052)
+It uses sockets to create a live connection between the server and the clients.
+The project has two sections, the Core and the UI.
 
-![image](https://github.com/amirkazemzade/messenger_client/assets/76568952/511c60fa-c7ac-4fa0-82a7-06e0a2b60a13)
+### Core Section
 
-![image](https://github.com/amirkazemzade/messenger_client/assets/76568952/11b6fd45-bc28-4b3f-b730-26a91fd76c78)
+It is written in `Java` programming language and uses its socket package for creating socket connections with server.
+also it could be written in `Kotlin` since it has the ability to use `Java` packages as well, it was requested by the
+lecturing teacher to use a programming language from the given languages list and `Kotlin` was not one
+of them.
+
+### UI Section:
+
+This section uses `Compose Multiplatform` and `Kotlin` for rendering UI of the app. It is targeted for desktop platform
+which includes `Windows`, `macOS` and `Linux`. Although it was only tested on `Windows` devices, there should not be a
+problem running it in other desktop platforms.
+
+## Screenshots
+
+### Authentication Screen
+
+You can log in to your created account or sign up for a new account.
+Your chat history is saved in a database and will be loaded when you re-enter your account.
+
+![login image](docs/login.png)
+
+When signing up you should provide a unique username that has not been used before with a password.
+
+![sign-up image](docs/signup.png)
+
+### Chat List
+
+After logging in you will be directed to the main screen of the app which shows you your chat list. You can select a
+chat to navigate to it, create a new private message, join/create a group or log out of your account.
+
+Your chat list is sorted by the date and time of the last message in that chat.
+
+Private Messages shows with `PM` prefix and Group Messages shows with `GM` prefix.
+
+![chat list image](docs/chat_list.png)
+
+### Private Messages
+
+Private Messages are messages between only two users. The messages in this chat will be updated in realtime.
+
+![private messaging image](docs/private_messaging.png)
+
+You can start a new private message by entering the username of the person you want to send message to.
+
+![new private message image](docs/new_private_message.png)
+
+### Group Messages
+
+Group Messages are a place where multiple users can communicate together. The messages in this chat will also be updated
+in realtime. You can also leave a group chat if you want to no longer be in it.
+
+![group messaging image](docs/group_messaging.png)
+
+Each group chat has its own unique id. You can join a group chat by entering its id, or create a new group chat with
+providing a unique id for it.
+
+![joining a group](docs/joining_a_group.png)
+![creating a group](docs/creating_a_group.png)
+
+When you are in a group chat, you can see the list of users that are in that group chat. You can also send private
+message to a group chat user by clicking on its name in the group chat users list.
+
+![group user list](docs/group_user_list.png)
